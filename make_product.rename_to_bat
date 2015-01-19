@@ -1,42 +1,58 @@
 @echo off
 
-REM Set to the name of the sub-directories for the output files
-SET PRODUCTDIR=___Product___\Release
-SET DEBUGPRODDIR=___Product___\Debug
+setlocal enableextensions enabledelayedexpansion
 
-SET PPJOYDIR=%~dp0
+:: Set to the name of the sub-directories for the output files
+set PRODUCTDIR=___Product___\Release
+set DEBUGPRODDIR=___Product___\Debug
 
-ECHO Building PPJoy...
+set PPJOYDIR=%~dp0
 
-REM ============ Build options for customised PPJoy setup =======================
-rem rem SET INSTALLBAT=PPJoy.bat
-rem rem SET PPJOYZIP=PPJoySetup.zip
-REM =============================================================================
+echo Building PPJoy...
 
-REM ============ Compiler config ==============================
-SET DDKROOT=C:\WinDDK\7600.16385.0
-SET VSROOT=C:\Program Files (x86)\Microsoft Visual Studio 9.0\Common7\IDE
-SET VSE2005ROOT=C:\Program Files (x86)\Microsoft Visual Studio 8\Common7\IDE
-SET VSE2005CMD=VCExpress.exe
-REM ===========================================================
+:: ============ Build options for customised PPJoy setup =======================
+:: :: SET INSTALLBAT=PPJoy.bat
+:: :: SET PPJOYZIP=PPJoySetup.zip
+:: =============================================================================
+
+:: ============ Compiler config ==============================
+set DDKROOT=C:\WinDDK\7600.16385.0
+set VSROOT=%DevEnvDir%
+:: set VSROOT=C:\Program Files (x86)\Microsoft Visual Studio 9.0\Common7\IDE
+:: set VSE2005ROOT=C:\Program Files (x86)\Microsoft Visual Studio 8\Common7\IDE
+:: set VSE2005CMD=VCExpress.exe
+:: ===========================================================
 
 echo.
 echo Starting build process
 echo ======================
 echo.
 
-PUSHD %PPJOYDIR%
+pushd %PPJOYDIR%
 
-RD /s /Q "%PPJOYDIR%\%PRODUCTDIR%"
-RD /s /Q "%PPJOYDIR%\%DEBUGPRODDIR%"
+:: NO! NO! NO! NO! NO! NO! and NO!
+::
+:: before removing a directory with a command like rmdir /s /q (all subdirs, QUIET)
+:: you better be gosh-darned sure that you got a directory called that. oh yeah; BTW
+:: whatever the issues is caused it to completely delete my entire PPJoy Directory,
+:: including .git so i could have been completely screwed had i not already pushed
+:: to github.
+::
+:: rmdir /s /Q "%PPJOYDIR%\%PRODUCTDIR%"
+:: rmdir /s /Q "%PPJOYDIR%\%DEBUGPRODDIR%"
 
-MD "%PPJOYDIR%\%PRODUCTDIR%"
-MD "%PPJOYDIR%\%PRODUCTDIR%\__Support__"
-MD "%PPJOYDIR%\%DEBUGPRODDIR%"
-MD "%PPJOYDIR%\%DEBUGPRODDIR%\__Support__"
-RD /s /Q "%PPJOYDIR%\Scripts"
-MD "%PPJOYDIR%\Scripts"
+:: no reason to make directories other than the lowest level since they will all get made
+:: mkdir "%PPJOYDIR%\%PRODUCTDIR%
+:: mkdir "%PPJOYDIR%\%DEBUGPRODDIR%"
 
+mkdir "%PPJOYDIR%\%PRODUCTDIR%\__Support__"
+mkdir "%PPJOYDIR%\%DEBUGPRODDIR%\__Support__"
+
+:: NO! NO! NO! NO! NO! NO! and NO! BAD DEVELOPER NO COFFEE!
+::
+:: rmdir /s /Q "%PPJOYDIR%\Scripts"
+
+mkdir "%PPJOYDIR%\Scripts"
 
 echo.
 echo =====================================================
@@ -44,11 +60,13 @@ echo   Building checked (debug) version of PPJoy drivers
 echo =====================================================
 echo.
 
-SETLOCAL
+setlocal
+
 call "%DDKROOT%\bin\setenv.bat" %DDKROOT% chk wxp
-CD /D "%PPJOYDIR%"
+cd /D "%PPJOYDIR%"
 build /c
-ENDLOCAL
+
+endlocal
 
 echo.
 echo ====================================================
@@ -56,11 +74,13 @@ echo   Building free (release) version of PPJoy drivers
 echo ====================================================
 echo.
 
-SETLOCAL
+setlocal
+
 call "%DDKROOT%\bin\setenv.bat" %DDKROOT% fre wxp
-CD /D "%PPJOYDIR%"
+cd /D "%PPJOYDIR%"
 build /c
-ENDLOCAL
+
+endlocal
 
 echo.
 echo ============================================================
@@ -68,11 +88,13 @@ echo   Building checked (debug) 64 bit version of PPJoy drivers
 echo ============================================================
 echo.
 
-SETLOCAL
+setlocal
+
 call "%DDKROOT%\bin\setenv.bat" %DDKROOT% chk x64 WLH
-CD /D "%PPJOYDIR%"
+cd /D "%PPJOYDIR%"
 build /c
-ENDLOCAL
+
+endlocal
 
 echo.
 echo ===========================================================
@@ -80,31 +102,35 @@ echo   Building free (release) 64 bit version of PPJoy drivers
 echo ===========================================================
 echo.
 
-SETLOCAL
+setlocal
+
 call "%DDKROOT%\bin\setenv.bat" %DDKROOT% fre x64 WLH
-CD /D "%PPJOYDIR%"
+cd /D "%PPJOYDIR%"
 build /c
-ENDLOCAL
 
-echo.
-echo ==================================================
-echo   Building setup helper plugin (legacy platform)
-echo ==================================================
-echo.
+endlocal
 
-cd /D "%PPJOYDIR%\SetupHelper"
-"%VSE2005ROOT%\%VSE2005CMD%" SetupHelper.sln /rebuild "Debug|Win32"
-"%VSE2005ROOT%\%VSE2005CMD%" SetupHelper.sln /rebuild "Release|Win32"
+:: echo.
+:: echo ==================================================
+:: echo   Building setup helper plugin (legacy platform)
+:: echo ==================================================
+:: echo.
 
-REM output is only in Buildlog.html - make plan later
+:: cd /D "%PPJOYDIR%\SetupHelper"
+:: "%VSE2005ROOT%\%VSE2005CMD%" SetupHelper.sln /rebuild "Debug|Win32"
+:: "%VSE2005ROOT%\%VSE2005CMD%" SetupHelper.sln /rebuild "Release|Win32"
 
-SETLOCAL
+:: output is only in Buildlog.html - make plan later
 
-REM Set env variables for command line compiler - will use is some cases
+setlocal
+
+
+:: Set env variables for command line compiler - will use in some cases
 call "%VSROOT%"..\..\..\VC\bin\vcvars32.bat
-SET INCLUDE=%INCLUDE%;"%DDKROOT%\inc\api
-REM for some strange reason the wxp directory is missing the dxguid.lib library so we tack the Win 2003 srv dir on to the end.
-SET LIB=%LIB%;"%DDKROOT%\lib\wxp\i386;"%DDKROOT%\lib\wnet\i386
+set INCLUDE=%INCLUDE%;"%DDKROOT%\inc\api
+
+:: for some strange reason the wxp directory is missing the dxguid.lib library so we tack the Win 2003 srv dir on to the end.
+set LIB=%LIB%;"%DDKROOT%\lib\wxp\i386;"%DDKROOT%\lib\wnet\i386
 
 
 echo.
@@ -147,7 +173,7 @@ echo   Building Helper64 x64 helper
 echo =====================================
 echo.
 
-REM Don't use environment override for x64 - we set 32 it env vars
+:: Don't use environment override for x64 - we set 32 it env vars
 cd /D "%PPJOYDIR%\Helper64"
 "%VSROOT%\devenv" Helper64.sln /rebuild "Debug|x64"
 "%VSROOT%\devenv" Helper64.sln /rebuild "Release|x64"
@@ -158,7 +184,7 @@ echo   Building UnInst64 x64 helper
 echo =====================================
 echo.
 
-REM Don't use environment override for x64 - we set 32 it env vars
+:: Don't use environment override for x64 - we set 32 it env vars
 cd /D "%PPJOYDIR%\UnInst64"
 "%VSROOT%\devenv" UnInst64.sln /rebuild "Debug|x64"
 "%VSROOT%\devenv" UnInst64.sln /rebuild "Release|x64"
@@ -281,11 +307,11 @@ echo.
 
 cd /D "%PPJOYDIR%"
 call Scripts\CopyProducts.bat %PRODUCTDIR% %DEBUGPRODDIR%
-REM use for test certificate in an PFX exported file. DO NOT EXPORT real certificate to a PFX file
+:: use for test certificate in an PFX exported file. DO NOT EXPORT real certificate to a PFX file
 call Scripts\SignDriverFiles.bat %DDKROOT% /f TestSign\TestCertificate.pfx %PRODUCTDIR% %DEBUGPRODDIR%
 REM
-REM For real certificates use:
-REM call Scripts\SignDriverFiles.bat %DDKROOT% /s <CertStoreName> %PRODUCTDIR% %DEBUGPRODDIR%
+:: For real certificates use:
+:: call Scripts\SignDriverFiles.bat %DDKROOT% /s <CertStoreName> %PRODUCTDIR% %DEBUGPRODDIR%
 REM
 
 copy /y IOCTLSample\Release\IOCTLSample.exe %PRODUCTDIR%\__Support__
@@ -304,7 +330,6 @@ copy /y PPJoyAPI\Release\PPJoyAPI.lib %PRODUCTDIR%\__Support__
 copy /y PPJoyAPI\Debug\PPJoyAPI.lib %DEBUGPRODDIR%\__Support__
 copy /y PPJoyAPI\PPJoyAPI.h %PRODUCTDIR%\__Support__
 copy /y Tools\AddDriversTest\AddDriversTest.c %PRODUCTDIR%\__Support__
-
 
 copy /y PPJoyCOM\Release\PPJoyCOM.exe %PRODUCTDIR%
 copy /y PPJoyCOM\Debug\PPJoyCOM.exe %DEBUGPRODDIR%
@@ -327,17 +352,17 @@ zip -9 -X -j %PPJOYDIR%\Docs\Diagrams\Virtual\RCCallbackDLLs.zip %PPJOYDIR%\RCCa
 
 xcopy /s /i docs %PRODUCTDIR%\docs
 
-echo.
-echo ======================================================
-echo   Building PPJoyInstaller
-echo ======================================================
-echo.
+:: echo.
+:: echo ======================================================
+:: echo   Building PPJoyInstaller
+:: echo ======================================================
+:: echo.
 
 "C:\Program Files (x86)\NSIS\makensis.exe" Installer\PPJoyInstaller.nsi
 
-echo Build/Copy done.
+:: echo Build/Copy done.
 
-ENDLOCAL
+endlocal
 
 POPD
 
